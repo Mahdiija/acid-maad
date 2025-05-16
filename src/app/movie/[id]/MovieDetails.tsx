@@ -1,16 +1,14 @@
 "use client";
 
-import { TMDB_IMAGE_BASE_URL } from "@/config/tmdb";
+import { MovieDetails as MovieDetailsType } from "@/types/tmdb";
+import Image from "@/components/Image";
 import Link from "next/link";
-import { useState } from "react";
 
-export default function MovieDetails({ movie }: { movie: any }) {
-  const [imageError, setImageError] = useState<{ [key: string]: boolean }>({});
+interface MovieDetailsProps {
+  movie: MovieDetailsType;
+}
 
-  const handleImageError = (imageKey: string) => {
-    setImageError((prev) => ({ ...prev, [imageKey]: true }));
-  };
-
+export default function MovieDetails({ movie }: MovieDetailsProps) {
   if (!movie) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -28,157 +26,75 @@ export default function MovieDetails({ movie }: { movie: any }) {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="container mx-auto px-4 py-6">
-        <Link
-          href="/"
-          className="inline-flex items-center text-gray-400 hover:text-white transition-colors"
-        >
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+    <div className="max-w-7xl mx-auto">
+      {/* Backdrop */}
+      <div className="relative h-[60vh] w-full">
+        <Image
+          src={movie.backdrop_path}
+          alt={movie.title}
+          width={1920}
+          height={1080}
+          className="w-full h-full object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
+      </div>
+
+      {/* Content */}
+      <div className="relative -mt-32 px-8 pb-8">
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Poster */}
+          <div className="w-64 h-96 flex-shrink-0">
+            <Image
+              src={movie.poster_path}
+              alt={movie.title}
+              width={500}
+              height={750}
+              className="w-full h-full object-cover rounded-lg shadow-xl"
+              priority
             />
-          </svg>
-          Back to Home
-        </Link>
-      </div>
-
-      <div className="relative h-[60vh] min-h-[500px]">
-        {!imageError.backdrop && (
-          <img
-            src={`${TMDB_IMAGE_BASE_URL}/original${movie.backdrop_path}`}
-            alt={movie.title}
-            className="w-full h-full object-cover"
-            onError={() => handleImageError("backdrop")}
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-8">
-          <div className="container mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              {movie.title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-300">
-              <span className="flex items-center">
-                <svg
-                  className="w-4 h-4 text-yellow-500 mr-1"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                {movie.vote_average.toFixed(1)}
-              </span>
-              <span>
-                {movie.release_date
-                  ? new Date(movie.release_date).getFullYear()
-                  : "N/A"}
-              </span>
-              <span>{movie.runtime} min</span>
-              <div className="flex flex-wrap gap-2">
-                {movie.genres.map((genre: any) => (
-                  <span
-                    key={genre.id}
-                    className="px-2 py-1 bg-gray-800 rounded-full text-xs"
-                  >
-                    {genre.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1">
-            <div className="sticky top-8">
-              {!imageError.poster && (
-                <img
-                  src={`${TMDB_IMAGE_BASE_URL}/w500${movie.poster_path}`}
-                  alt={movie.title}
-                  className="w-full rounded-lg shadow-lg"
-                  onError={() => handleImageError("poster")}
-                />
-              )}
-              {imageError.poster && (
-                <div className="w-full aspect-[2/3] bg-gray-800 rounded-lg flex items-center justify-center">
-                  <span className="text-gray-400">No poster available</span>
-                </div>
-              )}
-            </div>
           </div>
 
-          <div className="lg:col-span-2">
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold mb-4">Overview</h2>
-              <p className="text-gray-300 leading-relaxed">{movie.overview}</p>
-            </section>
+          {/* Details */}
+          <div className="flex-1 text-white">
+            <h1 className="text-4xl font-bold mb-2">{movie.title}</h1>
+            {movie.tagline && (
+              <p className="text-xl text-gray-300 mb-4">{movie.tagline}</p>
+            )}
 
-            <section className="mb-8">
-              <h2 className="text-2xl font-bold mb-4">Cast & Crew</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {movie.credits.cast.slice(0, 8).map((person: any) => (
-                  <div key={person.id} className="text-center">
-                    <div className="relative w-24 h-24 mx-auto mb-2 rounded-full overflow-hidden">
-                      {!imageError[`cast-${person.id}`] &&
-                      person.profile_path ? (
-                        <img
-                          src={`${TMDB_IMAGE_BASE_URL}/w185${person.profile_path}`}
-                          alt={person.name}
-                          className="w-full h-full object-cover"
-                          onError={() => handleImageError(`cast-${person.id}`)}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                          <span className="text-gray-400 text-xs">
-                            No image
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-sm">{person.name}</h3>
-                    <p className="text-xs text-gray-400">{person.character}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="bg-gray-800 p-6 rounded-lg">
-              <div className="flex items-center gap-4">
-                <svg
-                  className="w-8 h-8 text-yellow-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            <div className="flex flex-wrap gap-4 mb-6">
+              {movie.genres.map((genre) => (
+                <span
+                  key={genre.id}
+                  className="px-3 py-1 bg-gray-800 rounded-full text-sm"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                  {genre.name}
+                </span>
+              ))}
+            </div>
+
+            <div className="prose prose-invert max-w-none">
+              <p className="text-lg mb-6">{movie.overview}</p>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <h2 className="text-xl font-bold mb-2">
-                    Download Not Available
-                  </h2>
-                  <p className="text-gray-300">
-                    Movie downloads are not available at this time. This website
-                    is for informational purposes only.
-                  </p>
+                  <h3 className="text-gray-400">Release Date</h3>
+                  <p>{new Date(movie.release_date).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <h3 className="text-gray-400">Runtime</h3>
+                  <p>{movie.runtime} minutes</p>
+                </div>
+                <div>
+                  <h3 className="text-gray-400">Rating</h3>
+                  <p>{movie.vote_average.toFixed(1)}/10</p>
+                </div>
+                <div>
+                  <h3 className="text-gray-400">Status</h3>
+                  <p>{movie.status}</p>
                 </div>
               </div>
-            </section>
+            </div>
           </div>
         </div>
       </div>

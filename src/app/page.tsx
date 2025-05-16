@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { tmdbService } from "@/services/tmdb";
-import { TMDB_IMAGE_BASE_URL } from "@/config/tmdb";
+import { Movie } from "@/types/tmdb";
+import Image from "@/components/Image";
 import Link from "next/link";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
@@ -10,30 +11,79 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
+const swiperStyles = `
+  .swiper-button-next,
+  .swiper-button-prev {
+    color: #ef4444 !important;
+    background: rgba(0, 0, 0, 0.5);
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+
+  .swiper-button-next:hover,
+  .swiper-button-prev:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  .swiper-button-next::after,
+  .swiper-button-prev::after {
+    font-size: 20px !important;
+  }
+
+  .swiper-button-disabled {
+    opacity: 0.35 !important;
+    cursor: auto;
+    pointer-events: none;
+  }
+
+  .swiper-pagination-bullet {
+    background: #ef4444 !important;
+    opacity: 0.5;
+  }
+
+  .swiper-pagination-bullet-active {
+    opacity: 1;
+    width: 20px !important;
+    border-radius: 10px !important;
+  }
+`;
+
+interface MovieSection {
+  title: string;
+  movies: Movie[];
+}
+
 export default function Home() {
-  const [trendingMovies, setTrendingMovies] = useState<any[]>([]);
-  const [popularMovies, setPopularMovies] = useState<any[]>([]);
-  const [upcomingMovies, setUpcomingMovies] = useState<any[]>([]);
+  const [sections, setSections] = useState<MovieSection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        setLoading(true);
-        const [trending, popular, upcoming] = await Promise.all([
+        const [trending, popular, topRated] = await Promise.all([
           tmdbService.getTrendingMovies(),
           tmdbService.getPopularMovies(),
-          tmdbService.getUpcomingMovies(),
+          tmdbService.getTopRatedMovies(),
         ]);
 
-        setTrendingMovies(trending.results);
-        setPopularMovies(popular.results);
-        setUpcomingMovies(upcoming.results);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching movies:", err);
-        setError(err instanceof Error ? err.message : "Failed to fetch movies");
+        setSections([
+          {
+            title: "Trending Now",
+            movies: trending.results,
+          },
+          {
+            title: "Popular Movies",
+            movies: popular.results,
+          },
+          {
+            title: "Top Rated",
+            movies: topRated.results,
+          },
+        ]);
+      } catch (error) {
+        console.error("Error fetching movies:", error);
       } finally {
         setLoading(false);
       }
@@ -50,85 +100,71 @@ export default function Home() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-red-500 text-center">
-          <h2 className="text-2xl font-bold mb-4">Error</h2>
-          <p>{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const MovieSection = ({
-    title,
-    movies,
-  }: {
-    title: string;
-    movies: any[];
-  }) => (
-    <section className="mb-12">
-      <h2 className="text-2xl font-bold mb-6">{title}</h2>
-      <Swiper
-        modules={[Navigation, Pagination, Autoplay]}
-        spaceBetween={20}
-        slidesPerView={2}
-        navigation
-        pagination={{ clickable: true }}
-        autoplay={{ delay: 3000, disableOnInteraction: false }}
-        breakpoints={{
-          640: { slidesPerView: 3 },
-          768: { slidesPerView: 4 },
-          1024: { slidesPerView: 5 },
-          1280: { slidesPerView: 6 },
-        }}
-        className="movie-swiper"
-      >
-        {movies.map((movie) => (
-          <SwiperSlide key={movie.id}>
-            <Link
-              href={`/movie/${movie.id}`}
-              className="group relative bg-gray-800 rounded-lg overflow-hidden hover:transform hover:scale-105 transition-all duration-300"
-            >
-              <div className="relative aspect-[2/3]">
-                <img
-                  src={`${TMDB_IMAGE_BASE_URL}/w342${movie.poster_path}`}
-                  alt={movie.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = "/placeholder-movie.jpg";
-                    target.onerror = null;
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </div>
-              <div className="p-3">
-                <h3 className="text-sm font-semibold mb-1 line-clamp-2">
-                  {movie.title}
-                </h3>
-                <div className="flex justify-between text-xs text-gray-400">
-                  <span>⭐ {movie.vote_average.toFixed(1)}</span>
-                  <span>
-                    {movie.release_date
-                      ? new Date(movie.release_date).getFullYear()
-                      : "N/A"}
-                  </span>
-                </div>
-              </div>
-            </Link>
-          </SwiperSlide>
-        ))}
-      </Swiper>
-    </section>
-  );
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <MovieSection title="Trending Now" movies={trendingMovies} />
-      <MovieSection title="Popular Movies" movies={popularMovies} />
-      <MovieSection title="Coming Soon" movies={upcomingMovies} />
+    <div className="min-h-screen bg-gray-900 text-white">
+      <style jsx global>
+        {swiperStyles}
+      </style>
+      <div className="container mx-auto px-4 py-8">
+        {sections.map((section) => (
+          <div key={section.title} className="mb-12">
+            <h2 className="text-2xl font-bold mb-6">{section.title}</h2>
+            <Swiper
+              modules={[Navigation, Pagination, Autoplay]}
+              spaceBetween={20}
+              slidesPerView={1}
+              navigation
+              pagination={{ clickable: true }}
+              autoplay={{
+                delay: 3000,
+                disableOnInteraction: false,
+              }}
+              breakpoints={{
+                640: {
+                  slidesPerView: 2,
+                },
+                768: {
+                  slidesPerView: 3,
+                },
+                1024: {
+                  slidesPerView: 4,
+                },
+                1280: {
+                  slidesPerView: 5,
+                },
+              }}
+              className="!pb-12"
+            >
+              {section.movies.map((movie) => (
+                <SwiperSlide key={movie.id}>
+                  <Link
+                    href={`/movie/${movie.id}`}
+                    className="group relative aspect-[2/3] rounded-lg overflow-hidden block"
+                  >
+                    <Image
+                      src={movie.poster_path}
+                      alt={movie.title}
+                      width={500}
+                      height={750}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <h3 className="text-white font-semibold line-clamp-2">
+                          {movie.title}
+                        </h3>
+                        <p className="text-gray-300 text-sm">
+                          {new Date(movie.release_date).getFullYear()}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

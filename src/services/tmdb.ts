@@ -2,99 +2,71 @@ import {
   TMDB_API_KEY,
   TMDB_ACCESS_TOKEN,
   TMDB_API_BASE_URL,
+  TMDB_IMAGE_BASE_URL,
+  TMDB_ENDPOINTS,
 } from "@/config/tmdb";
+import { MovieDetails, SearchResult, Genre } from "@/types/tmdb";
 
-interface Movie {
-  id: number;
-  title: string;
-  overview: string;
-  poster_path: string;
-  backdrop_path: string;
-  vote_average: number;
-  release_date: string;
-  genre_ids: number[];
-}
-
-interface MovieDetails extends Movie {
-  genres: { id: number; name: string }[];
-  runtime: number;
-  status: string;
-  tagline: string;
-  credits: {
-    cast: Array<{
-      id: number;
-      name: string;
-      character: string;
-      profile_path: string;
-    }>;
-    crew: Array<{
-      id: number;
-      name: string;
-      job: string;
-    }>;
-  };
-}
-
-interface Genre {
-  id: number;
-  name: string;
-}
-
-const fetchTMDB = async (
+async function fetchTMDB<T>(
   endpoint: string,
   params: Record<string, string | number> = {}
-) => {
+): Promise<T> {
+  if (!TMDB_API_KEY) {
+    throw new Error("TMDB API key is not defined");
+  }
+
   const queryParams = new URLSearchParams({
-    api_key: TMDB_API_KEY || "",
-    ...params,
+    api_key: TMDB_API_KEY,
+    ...Object.entries(params).reduce(
+      (acc, [key, value]) => ({
+        ...acc,
+        [key]: String(value),
+      }),
+      {}
+    ),
   });
 
-  const url = `${TMDB_API_BASE_URL}${endpoint}?${queryParams}`;
-
-  try {
-    const response = await fetch(url, {
+  const response = await fetch(
+    `${TMDB_API_BASE_URL}${endpoint}?${queryParams}`,
+    {
       headers: {
         Authorization: `Bearer ${TMDB_ACCESS_TOKEN}`,
         "Content-Type": "application/json",
       },
-    });
-
-    if (!response.ok) {
-      throw new Error(`TMDB API error: ${response.status}`);
     }
+  );
 
-    return await response.json();
-  } catch (error) {
-    console.error("TMDB API request failed:", error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`TMDB API error: ${response.statusText}`);
   }
-};
+
+  return response.json();
+}
 
 export const tmdbService = {
   getTrendingMovies: (page: number = 1) =>
-    fetchTMDB("/trending/movie/week", { page }),
+    fetchTMDB<SearchResult>(TMDB_ENDPOINTS.trending, { page }),
 
-  getPopularMovies: (page: number = 1) => fetchTMDB("/movie/popular", { page }),
+  getPopularMovies: (page: number = 1) =>
+    fetchTMDB<SearchResult>(TMDB_ENDPOINTS.popular, { page }),
 
-  getTopRatedMovies: async () => {
-    console.log("⭐ Fetching top rated movies...");
-    return fetchTMDB("/movie/top_rated", {
-      include_adult: "false",
-      include_video: "false",
-    });
-  },
+  getTopRatedMovies: (page: number = 1) =>
+    fetchTMDB<SearchResult>(TMDB_ENDPOINTS.topRated, { page }),
 
   getUpcomingMovies: (page: number = 1) =>
-    fetchTMDB("/movie/upcoming", { page }),
+    fetchTMDB<SearchResult>(TMDB_ENDPOINTS.upcoming, { page }),
 
   getMovieDetails: (id: string) =>
-    fetchTMDB(`/movie/${id}`, { append_to_response: "credits" }),
+    fetchTMDB<MovieDetails>(TMDB_ENDPOINTS.movieDetails(id)),
 
   searchMovies: (query: string, page: number = 1) =>
-    fetchTMDB("/search/movie", { query, page }),
+    fetchTMDB<SearchResult>(TMDB_ENDPOINTS.search, { query, page }),
 
-  getGenres: () => fetchTMDB("/genre/movie/list"),
+  getGenres: () => fetchTMDB<{ genres: Genre[] }>(TMDB_ENDPOINTS.genres),
 
   getMoviesByGenre: (genreId: string, page: number = 1) =>
-    fetchTMDB("/discover/movie", { with_genres: genreId, page }),
+    fetchTMDB<SearchResult>(TMDB_ENDPOINTS.moviesByGenre(genreId), { page }),
+
+  getImageUrl: (path: string, size: string = "original") =>
+    `${TMDB_IMAGE_BASE_URL}/${size}${path}`,
 };
