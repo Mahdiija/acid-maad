@@ -3,7 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "FilmFlix - Watch Movies Online",
+  title: "Film- Watch Movies Online",
   description: "Watch the latest movies online in HD quality",
 };
 
